@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VisionVocabularyAAC - Simple Words</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        
+        button:disabled {
+            background: #ccc;
+        }
+        
+        .settings {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .settings label {
+            margin: 0 15px;
+            font-size: 14px;
+        }
+        
+        .settings input[type="range"] {
+            width: 100px;
+            vertical-align: middle;
+            margin: 0 5px;
+        }
+        
+        .main-layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .video-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            background: #000;
+            border-radius: 5px;
+            display: block;
+        }
+        
+        .detection-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+        
+        .vocabulary-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            min-height: 400px;
+        }
+        
+        .sentence-bar {
+            background: #f8f9fa;
+            border: 2px solid #007AFF;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            min-height: 60px;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .sentence-word {
+            background: #007AFF;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .word-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        
+        .word-button {
+            background: white;
+            border: 3px solid #007AFF;
+            border-radius: 15px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+        
+        .word-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        
+        .word-button:active {
+            transform: scale(0.95);
+            background: #007AFF;
+            color: white;
+        }
+        
+        .word-button .symbol {
+            font-size: 36px;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .word-button .word {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .word-button .confidence {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            font-size: 10px;
+            background: #e8f4fd;
+            padding: 2px 6px;
+            border-radius: 10px;
+            color: #007AFF;
+        }
+        
+        .action-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .action-button {
+            background: #34C759;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        .action-button.clear {
+            background: #FF3B30;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #e8f4fd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+        
+        /* Common words section */
+        .common-words {
+            border-top: 2px solid #eee;
+            margin-top: 20px;
+            padding-top: 20px;
+        }
+        
+        .common-words h3 {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .common-word-button {
+            background: #f0f0f0;
+            border: 2px solid #ddd;
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👁️ VisionVocabularyAAC - Simple Words</h1>
+        
+        <div class="controls">
+            <button id="startBtn">Start Vision</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+        
+        <div class="settings">
+            <label>
+                Confidence: 
+                <input type="range" id="confidenceSlider" min="50" max="90" value="70">
+                <span id="confidenceValue">70%</span>
+            </label>
+            <label>
+                Stability:
+                <input type="range" id="stabilitySlider" min="1" max="5" value="3">
+                <span id="stabilityValue">3 frames</span>
+            </label>
+        </div>
+        
+        <div class="status" id="status">Ready to start...</div>
+        
+        <div class="main-layout">
+            <!-- Camera view -->
+            <div class="video-panel">
+                <video id="video" autoplay playsinline></video>
+                <div class="detection-info" id="detectionInfo">
+                    Camera feed will appear here
+                </div>
+            </div>
+            
+            <!-- Vocabulary panel -->
+            <div class="vocabulary-panel">
+                <!-- Sentence builder -->
+                <div class="sentence-bar" id="sentenceBar">
+                    <span style="color: #999;">Click words to build sentence...</span>
+                </div>
+                
+                <!-- Action buttons -->
+                <div class="action-buttons">
+                    <button class="action-button" id="speakBtn">🔊 Speak</button>
+                    <button class="action-button clear" id="clearBtn">🗑️ Clear</button>
+                </div>
+                
+                <!-- Dynamic vocabulary -->
+                <h3 style="margin: 20px 0 10px; color: #666;">Detected Objects:</h3>
+                <div class="word-grid" id="wordGrid">
+                    <div class="empty-state">
+                        Point camera at objects to see them here...
+                    </div>
+                </div>
+                
+                <!-- Common words -->
+                <div class="common-words">
+                    <h3>Common Words:</h3>
+                    <div class="word-grid" id="commonWords">
+                        <!-- Will be populated with common words -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load TensorFlow.js and COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+    
+    <script type="module">
+        // Symbol mapping
+        const symbolMap = {
+            'person': '👤',
+            'bicycle': '🚲',
+            'car': '🚗',
+            'motorcycle': '🏍️',
+            'airplane': '✈️',
+            'bus': '🚌',
+            'train': '🚂',
+            'truck': '🚚',
+            'boat': '⛵',
+            'chair': '🪑',
+            'couch': '🛋️',
+            'potted plant': '🪴',
+            'bed': '🛏️',
+            'dining table': '🍽️',
+            'toilet': '🚽',
+            'tv': '📺',
+            'laptop': '💻',
+            'mouse': '🖱️',
+            'remote': '📱',
+            'keyboard': '⌨️',
+            'cell phone': '📱',
+            'microwave': '🔥',
+            'oven': '♨️',
+            'toaster': '🍞',
+            'sink': '🚰',
+            'refrigerator': '❄️',
+            'book': '📚',
+            'clock': '🕐',
+            'vase': '🏺',
+            'scissors': '✂️',
+            'teddy bear': '🧸',
+            'hair drier': '💨',
+            'toothbrush': '🪥',
+            'bottle': '🍼',
+            'wine glass': '🍷',
+            'cup': '☕',
+            'fork': '🍴',
+            'knife': '🔪',
+            'spoon': '🥄',
+            'bowl': '🍜',
+            'banana': '🍌',
+            'apple': '🍎',
+            'sandwich': '🥪',
+            'orange': '🍊',
+            'broccoli': '🥦',
+            'carrot': '🥕',
+            'hot dog': '🌭',
+            'pizza': '🍕',
+            'donut': '🍩',
+            'cake': '🎂',
+            'sports ball': '⚽',
+            'kite': '🪁',
+            'baseball bat': '🏏',
+            'baseball glove': '🥊',
+            'skateboard': '🛹',
+            'surfboard': '🏄',
+            'tennis racket': '🎾',
+            'backpack': '🎒',
+            'umbrella': '☂️',
+            'handbag': '👜',
+            'tie': '👔',
+            'suitcase': '🧳',
+            'frisbee': '🥏',
+            'skis': '🎿',
+            'snowboard': '🏂',
+            'fire hydrant': '🚒',
+            'stop sign': '🛑',
+            'parking meter': '🅿️',
+            'bench': '🪑',
+            'bird': '🐦',
+            'cat': '🐱',
+            'dog': '🐕',
+            'horse': '🐴',
+            'sheep': '🐑',
+            'cow': '🐄',
+            'elephant': '🐘',
+            'bear': '🐻',
+            'zebra': '🦓',
+            'giraffe': '🦒'
+        };
+        
+        // Common words that are always available
+        const commonWords = [
+            { word: 'I', symbol: '👆' },
+            { word: 'want', symbol: '🤲' },
+            { word: 'need', symbol: '❗' },
+            { word: 'see', symbol: '👀' },
+            { word: 'yes', symbol: '✅' },
+            { word: 'no', symbol: '❌' },
+            { word: 'more', symbol: '➕' },
+            { word: 'stop', symbol: '🛑' },
+            { word: 'go', symbol: '🟢' },
+            { word: 'help', symbol: '🆘' },
+            { word: 'please', symbol: '🙏' },
+            { word: 'thank you', symbol: '🙏' }
+        ];
+        
+        // Improved Vision System (inline version)
+        class ImprovedVisionSystem {
+            constructor(config = {}) {
+                this.config = {
+                    confidenceThreshold: config.confidenceThreshold || 0.7,
+                    maxDetections: config.maxDetections || 6,
+                    frameSkip: config.frameSkip || 2,
+                    stabilityFrames: config.stabilityFrames || 3,
+                    debugMode: config.debugMode || false
+                };
+                
+                this.model = null;
+                this.isReady = false;
+                this.stream = null;
+                this.frameCount = 0;
+                this.detectionHistory = [];
+                this.stableDetections = [];
+                
+                this.onDetection = config.onDetection || null;
+                this.onReady = config.onReady || null;
+                this.onError = config.onError || null;
+            }
+            
+            async initialize() {
+                try {
+                    console.log('Loading model...');
+                    this.model = await cocoSsd.load({
+                        base: 'mobilenet_v2' // Better accuracy
+                    });
+                    
+                    console.log('Requesting camera...');
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
+                    });
+                    
+                    this.isReady = true;
+                    if (this.onReady) this.onReady();
+                    
+                } catch (error) {
+                    if (this.onError) this.onError({ context: 'Init failed', error });
+                }
+            }
+            
+            startProcessing(videoElement) {
+                if (!this.isReady) return;
+                videoElement.srcObject = this.stream;
+                videoElement.onloadedmetadata = () => {
+                    this.processFrame(videoElement);
+                };
+            }
+            
+            async processFrame(videoElement) {
+                this.frameCount++;
+                
+                if (this.frameCount % this.config.frameSkip !== 0) {
+                    requestAnimationFrame(() => this.processFrame(videoElement));
+                    return;
+                }
+                
+                try {
+                    const rawDetections = await this.model.detect(videoElement);
+                    const filtered = rawDetections.filter(d => d.score >= this.config.confidenceThreshold);
+                    
+                    // Sort by confidence and limit
+                    filtered.sort((a, b) => b.score - a.score);
+                    const limited = filtered.slice(0, this.config.maxDetections);
+                    
+                    // Update history
+                    this.detectionHistory.push(limited);
+                    if (this.detectionHistory.length > this.config.stabilityFrames) {
+                        this.detectionHistory.shift();
+                    }
+                    
+                    // Get stable detections
+                    const stable = this.getStableDetections();
+                    
+                    if (this.detectionsChanged(stable)) {
+                        this.stableDetections = stable;
+                        if (this.onDetection) this.onDetection(stable);
+                    }
+                    
+                } catch (error) {
+                    console.error('Processing error:', error);
+                }
+                
+                requestAnimationFrame(() => this.processFrame(videoElement));
+            }
+            
+            getStableDetections() {
+                if (this.detectionHistory.length < this.config.stabilityFrames) {
+                    return [];
+                }
+                
+                // Count occurrences
+                const classCount = new Map();
+                const classScores = new Map();
+                
+                for (const frameDetections of this.detectionHistory) {
+                    for (const detection of frameDetections) {
+                        const count = classCount.get(detection.class) || 0;
+                        classCount.set(detection.class, count + 1);
+                        
+                        const currentScore = classScores.get(detection.class) || 0;
+                        if (detection.score > currentScore) {
+                            classScores.set(detection.class, detection.score);
+                        }
+                    }
+                }
+                
+                // Get stable objects
+                const stable = [];
+                const requiredFrames = Math.ceil(this.config.stabilityFrames * 0.6);
+                
+                for (const [className, count] of classCount) {
+                    if (count >= requiredFrames) {
+                        stable.push({
+                            class: className,
+                            score: classScores.get(className)
+                        });
+                    }
+                }
+                
+                return stable;
+            }
+            
+            detectionsChanged(newDetections) {
+                if (newDetections.length !== this.stableDetections.length) return true;
+                const newClasses = new Set(newDetections.map(d => d.class));
+                const oldClasses = new Set(this.stableDetections.map(d => d.class));
+                if (newClasses.size !== oldClasses.size) return true;
+                for (let item of newClasses) {
+                    if (!oldClasses.has(item)) return true;
+                }
+                return false;
+            }
+            
+            stop() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                this.isReady = false;
+                this.detectionHistory = [];
+                this.stableDetections = [];
+            }
+            
+            updateConfig(newConfig) {
+                this.config = { ...this.config, ...newConfig };
+            }
+        }
+        
+        // UI Elements
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const detectionInfo = document.getElementById('detectionInfo');
+        const wordGrid = document.getElementById('wordGrid');
+        const sentenceBar = document.getElementById('sentenceBar');
+        const speakBtn = document.getElementById('speakBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const commonWordsGrid = document.getElementById('commonWords');
+        
+        // Settings
+        const confidenceSlider = document.getElementById('confidenceSlider');
+        const confidenceValue = document.getElementById('confidenceValue');
+        const stabilitySlider = document.getElementById('stabilitySlider');
+        const stabilityValue = document.getElementById('stabilityValue');
+        
+        let visionSystem = null;
+        let sentence = [];
+        
+        // Settings handlers
+        confidenceSlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            confidenceValue.textContent = value + '%';
+            if (visionSystem) {
+                visionSystem.updateConfig({ confidenceThreshold: value / 100 });
+            }
+        });
+        
+        stabilitySlider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            stabilityValue.textContent = value + ' frames';
+            if (visionSystem) {
+                visionSystem.updateConfig({ stabilityFrames: parseInt(value) });
+            }
+        });
+        
+        // Display common words
+        function displayCommonWords() {
+            commonWordsGrid.innerHTML = commonWords.map(item => `
+                <button class="word-button common-word-button" data-word="${item.word}">
+                    <span class="symbol">${item.symbol}</span>
+                    <div class="word">${item.word}</div>
+                </button>
+            `).join('');
+            
+            // Add click handlers
+            commonWordsGrid.querySelectorAll('.word-button').forEach(btn => {
+                btn.addEventListener('click', () => addToSentence(btn.dataset.word));
+            });
+        }
+        
+        // Display detected vocabulary
+        function displayVocabulary(detections) {
+            if (detections.length === 0) {
+                wordGrid.innerHTML = '<div class="empty-state">No objects detected yet...</div>';
+                detectionInfo.textContent = 'Waiting for objects...';
+                return;
+            }
+            
+            detectionInfo.textContent = `Detecting ${detections.length} objects`;
+            
+            wordGrid.innerHTML = detections.map(item => {
+                const symbol = symbolMap[item.class] || '❓';
+                const confidence = Math.round(item.score * 100);
+                
+                return `
+                    <button class="word-button" data-word="${item.class}">
+                        <span class="confidence">${confidence}%</span>
+                        <span class="symbol">${symbol}</span>
+                        <div class="word">${item.class}</div>
+                    </button>
+                `;
+            }).join('');
+            
+            // Add click handlers
+            wordGrid.querySelectorAll('.word-button').forEach(btn => {
+                btn.addEventListener('click', () => addToSentence(btn.dataset.word));
+            });
+        }
+        
+        // Add word to sentence
+        function addToSentence(word) {
+            sentence.push(word);
+            updateSentenceDisplay();
+        }
+        
+        // Update sentence display
+        function updateSentenceDisplay() {
+            if (sentence.length === 0) {
+                sentenceBar.innerHTML = '<span style="color: #999;">Click words to build sentence...</span>';
+            } else {
+                sentenceBar.innerHTML = sentence.map(word => 
+                    `<span class="sentence-word">${word}</span>`
+                ).join('');
+            }
+        }
+        
+        // Speak sentence
+        function speak() {
+            if (sentence.length === 0) return;
+            
+            const text = sentence.join(' ');
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
+            speechSynthesis.speak(utterance);
+        }
+        
+        // Clear sentence
+        function clearSentence() {
+            sentence = [];
+            updateSentenceDisplay();
+        }
+        
+        // Button handlers
+        speakBtn.addEventListener('click', speak);
+        clearBtn.addEventListener('click', clearSentence);
+        
+        // Start system
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            status.textContent = 'Initializing vision system...';
+            
+            const confidence = confidenceSlider.value / 100;
+            const stability = parseInt(stabilitySlider.value);
+            
+            visionSystem = new ImprovedVisionSystem({
+                confidenceThreshold: confidence,
+                stabilityFrames: stability,
+                onReady: () => {
+                    status.textContent = 'Vision system active - Point at objects!';
+                    visionSystem.startProcessing(video);
+                    stopBtn.disabled = false;
+                },
+                onDetection: (detections) => {
+                    displayVocabulary(detections);
+                },
+                onError: ({ context, error }) => {
+                    status.textContent = `Error: ${error.message}`;
+                    startBtn.disabled = false;
+                }
+            });
+            
+            await visionSystem.initialize();
+        });
+        
+        // Stop system
+        stopBtn.addEventListener('click', () => {
+            if (visionSystem) {
+                visionSystem.stop();
+                visionSystem = null;
+            }
+            
+            video.srcObject = null;
+            status.textContent = 'System stopped';
+            displayVocabulary([]);
+            detectionInfo.textContent = 'Camera feed will appear here';
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+        
+        // Initialize common words
+        displayCommonWords();
+    </script>
+</body>
+</html>

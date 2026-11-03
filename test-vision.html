@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision System Test - VisionVocabularyAAC</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        #video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            background: #000;
+            border-radius: 10px;
+            display: block;
+            margin: 0 auto 20px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        
+        button:disabled {
+            background: #ccc;
+        }
+        
+        .detections {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .detection-item {
+            display: inline-block;
+            background: #007AFF;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            margin: 5px;
+            font-size: 16px;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 20px 0;
+            font-style: italic;
+            color: #666;
+        }
+        
+        .error {
+            background: #ff3b30;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Vision System Test</h1>
+        
+        <video id="video" autoplay playsinline></video>
+        
+        <div class="controls">
+            <button id="startBtn">Start Vision System</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+        
+        <div id="status" class="status">Click Start to begin...</div>
+        
+        <div class="detections">
+            <h2>Detected Objects:</h2>
+            <div id="detectionsList">
+                <em>No objects detected yet...</em>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load TensorFlow.js and COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+    
+    <script type="module">
+        // Simple inline version of VisionSystem for testing
+        class VisionSystem {
+            constructor(config = {}) {
+                this.config = {
+                    confidenceThreshold: config.confidenceThreshold || 0.6,
+                    maxDetections: config.maxDetections || 10,
+                    frameSkip: config.frameSkip || 3,
+                    debugMode: true
+                };
+                
+                this.model = null;
+                this.isReady = false;
+                this.stream = null;
+                this.frameCount = 0;
+                this.lastDetections = [];
+                
+                this.onDetection = config.onDetection || null;
+                this.onReady = config.onReady || null;
+                this.onError = config.onError || null;
+            }
+            
+            async initialize() {
+                try {
+                    console.log('Loading model...');
+                    this.model = await cocoSsd.load({
+                        base: 'lite_mobilenet_v2'
+                    });
+                    
+                    console.log('Requesting camera...');
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    });
+                    
+                    this.isReady = true;
+                    if (this.onReady) this.onReady();
+                    
+                } catch (error) {
+                    if (this.onError) this.onError({ context: 'Init failed', error });
+                }
+            }
+            
+            startProcessing(videoElement) {
+                if (!this.isReady) return;
+                videoElement.srcObject = this.stream;
+                this.processFrame(videoElement);
+            }
+            
+            async processFrame(videoElement) {
+                this.frameCount++;
+                if (this.frameCount % this.config.frameSkip !== 0) {
+                    requestAnimationFrame(() => this.processFrame(videoElement));
+                    return;
+                }
+                
+                try {
+                    const detections = await this.model.detect(videoElement);
+                    const filtered = detections.filter(d => d.score >= this.config.confidenceThreshold);
+                    
+                    // Deduplicate
+                    const grouped = new Map();
+                    filtered.forEach(d => {
+                        if (!grouped.has(d.class) || grouped.get(d.class).score < d.score) {
+                            grouped.set(d.class, d);
+                        }
+                    });
+                    
+                    const unique = Array.from(grouped.values()).slice(0, this.config.maxDetections);
+                    
+                    if (this.detectionsChanged(unique)) {
+                        this.lastDetections = unique;
+                        if (this.onDetection) this.onDetection(unique);
+                    }
+                    
+                } catch (error) {
+                    console.error('Processing error:', error);
+                }
+                
+                requestAnimationFrame(() => this.processFrame(videoElement));
+            }
+            
+            detectionsChanged(newDetections) {
+                if (newDetections.length !== this.lastDetections.length) return true;
+                const newClasses = new Set(newDetections.map(d => d.class));
+                const oldClasses = new Set(this.lastDetections.map(d => d.class));
+                if (newClasses.size !== oldClasses.size) return true;
+                for (let item of newClasses) {
+                    if (!oldClasses.has(item)) return true;
+                }
+                return false;
+            }
+            
+            stop() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                this.isReady = false;
+            }
+        }
+        
+        // UI Controllers
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const detectionsList = document.getElementById('detectionsList');
+        
+        let visionSystem = null;
+        
+        function updateStatus(message, isError = false) {
+            status.textContent = message;
+            status.className = isError ? 'error' : 'status';
+        }
+        
+        function displayDetections(detections) {
+            if (detections.length === 0) {
+                detectionsList.innerHTML = '<em>No objects detected...</em>';
+                return;
+            }
+            
+            detectionsList.innerHTML = detections.map(d => 
+                `<span class="detection-item">${d.class} (${Math.round(d.score * 100)}%)</span>`
+            ).join('');
+        }
+        
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            updateStatus('Initializing Vision System...');
+            
+            visionSystem = new VisionSystem({
+                onReady: () => {
+                    updateStatus('Vision System running! Point at objects...');
+                    visionSystem.startProcessing(video);
+                    stopBtn.disabled = false;
+                },
+                onDetection: (detections) => {
+                    displayDetections(detections);
+                },
+                onError: ({ context, error }) => {
+                    updateStatus(`Error: ${error.message}`, true);
+                    startBtn.disabled = false;
+                }
+            });
+            
+            await visionSystem.initialize();
+        });
+        
+        stopBtn.addEventListener('click', () => {
+            if (visionSystem) {
+                visionSystem.stop();
+                visionSystem = null;
+            }
+            
+            video.srcObject = null;
+            updateStatus('Vision System stopped');
+            displayDetections([]);
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>

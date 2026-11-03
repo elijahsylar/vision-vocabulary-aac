@@ -1,0 +1,14 @@
+node_modules/
+.DS_Store
+.env
+*.log
+build/
+dist/
+.env.*
+!.env.example
+.claude/
+data/
+runs/
+logs/
+*.sql*
+*.db

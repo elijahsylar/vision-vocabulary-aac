@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision → AAC Integration Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        #video {
+            width: 100%;
+            height: auto;
+            background: #000;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        
+        button:disabled {
+            background: #ccc;
+        }
+        
+        button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        
+        .aac-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .aac-button {
+            background: white;
+            border: 3px solid #007AFF;
+            border-radius: 15px;
+            padding: 20px 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .aac-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        
+        .aac-button:active {
+            background: #007AFF;
+            color: white;
+            transform: scale(0.95);
+        }
+        
+        .aac-button .symbol {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .aac-button .label {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .aac-button .phrase {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            background: #e8f4fd;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .detections-list {
+            margin-top: 10px;
+        }
+        
+        .detection-item {
+            display: inline-block;
+            background: #e8f4fd;
+            padding: 5px 15px;
+            border-radius: 15px;
+            margin: 3px;
+            font-size: 14px;
+        }
+        
+        .phrase-output {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            min-height: 50px;
+            font-size: 18px;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Vision → 💬 AAC Integration Test</h1>
+        
+        <div class="controls">
+            <button id="startBtn">Start System</button>
+            <button id="stopBtn" disabled>Stop</button>
+        </div>
+        
+        <div class="status" id="status">Click Start to begin...</div>
+        
+        <div class="main-grid">
+            <!-- Vision Panel -->
+            <div class="panel">
+                <h2>👁️ Vision System</h2>
+                <video id="video" autoplay playsinline></video>
+                <div class="detections-list" id="detectionsList">
+                    <em>No objects detected yet...</em>
+                </div>
+            </div>
+            
+            <!-- AAC Panel -->
+            <div class="panel">
+                <h2>💬 AAC Vocabulary</h2>
+                <div class="phrase-output" id="phraseOutput">
+                    Speech output will appear here...
+                </div>
+                <div class="aac-grid" id="aacGrid">
+                    <div class="empty-state">
+                        Point camera at objects to generate vocabulary...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load TensorFlow.js and COCO-SSD -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3"></script>
+    
+    <script type="module">
+        // Import our modules (inline for testing)
+        // In production, these would be proper imports
+        
+        // VisionSystem from earlier
+        class VisionSystem {
+            constructor(config = {}) {
+                this.config = {
+                    confidenceThreshold: config.confidenceThreshold || 0.6,
+                    maxDetections: config.maxDetections || 10,
+                    frameSkip: config.frameSkip || 3,
+                    debugMode: true
+                };
+                
+                this.model = null;
+                this.isReady = false;
+                this.stream = null;
+                this.frameCount = 0;
+                this.lastDetections = [];
+                
+                this.onDetection = config.onDetection || null;
+                this.onReady = config.onReady || null;
+                this.onError = config.onError || null;
+            }
+            
+            async initialize() {
+                try {
+                    console.log('Loading model...');
+                    this.model = await cocoSsd.load({
+                        base: 'lite_mobilenet_v2'
+                    });
+                    
+                    console.log('Requesting camera...');
+                    this.stream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: 'environment',
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        }
+                    });
+                    
+                    this.isReady = true;
+                    if (this.onReady) this.onReady();
+                    
+                } catch (error) {
+                    if (this.onError) this.onError({ context: 'Init failed', error });
+                }
+            }
+            
+            startProcessing(videoElement) {
+                if (!this.isReady) return;
+                videoElement.srcObject = this.stream;
+                this.processFrame(videoElement);
+            }
+            
+            async processFrame(videoElement) {
+                this.frameCount++;
+                if (this.frameCount % this.config.frameSkip !== 0) {
+                    requestAnimationFrame(() => this.processFrame(videoElement));
+                    return;
+                }
+                
+                try {
+                    const detections = await this.model.detect(videoElement);
+                    const filtered = detections.filter(d => d.score >= this.config.confidenceThreshold);
+                    
+                    // Deduplicate
+                    const grouped = new Map();
+                    filtered.forEach(d => {
+                        if (!grouped.has(d.class) || grouped.get(d.class).score < d.score) {
+                            grouped.set(d.class, d);
+                        }
+                    });
+                    
+                    const unique = Array.from(grouped.values()).slice(0, this.config.maxDetections);
+                    
+                    if (this.detectionsChanged(unique)) {
+                        this.lastDetections = unique;
+                        if (this.onDetection) this.onDetection(unique);
+                    }
+                    
+                } catch (error) {
+                    console.error('Processing error:', error);
+                }
+                
+                requestAnimationFrame(() => this.processFrame(videoElement));
+            }
+            
+            detectionsChanged(newDetections) {
+                if (newDetections.length !== this.lastDetections.length) return true;
+                const newClasses = new Set(newDetections.map(d => d.class));
+                const oldClasses = new Set(this.lastDetections.map(d => d.class));
+                if (newClasses.size !== oldClasses.size) return true;
+                for (let item of newClasses) {
+                    if (!oldClasses.has(item)) return true;
+                }
+                return false;
+            }
+            
+            stop() {
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                this.isReady = false;
+            }
+        }
+        
+        // Inline version of AACEngine
+        class AACEngine {
+            constructor(config = {}) {
+                this.config = {
+                    maxPhrasesPerObject: config.maxPhrasesPerObject || 4,
+                    enablePrediction: config.enablePrediction || true,
+                    debugMode: config.debugMode || false
+                };
+                
+                // Simplified symbol map
+                this.symbolMap = {
+                    'person': { symbol: '👤', category: 'people' },
+                    'bicycle': { symbol: '🚲', category: 'vehicle' },
+                    'car': { symbol: '🚗', category: 'vehicle' },
+                    'motorcycle': { symbol: '🏍️', category: 'vehicle' },
+                    'airplane': { symbol: '✈️', category: 'vehicle' },
+                    'bus': { symbol: '🚌', category: 'vehicle' },
+                    'train': { symbol: '🚂', category: 'vehicle' },
+                    'truck': { symbol: '🚚', category: 'vehicle' },
+                    'boat': { symbol: '⛵', category: 'vehicle' },
+                    'chair': { symbol: '🪑', category: 'furniture' },
+                    'couch': { symbol: '🛋️', category: 'furniture' },
+                    'potted plant': { symbol: '🪴', category: 'object' },
+                    'bed': { symbol: '🛏️', category: 'furniture' },
+                    'dining table': { symbol: '🪑', category: 'furniture' },
+                    'toilet': { symbol: '🚽', category: 'furniture' },
+                    'tv': { symbol: '📺', category: 'electronics' },
+                    'laptop': { symbol: '💻', category: 'electronics' },
+                    'mouse': { symbol: '🖱️', category: 'electronics' },
+                    'remote': { symbol: '📱', category: 'electronics' },
+                    'keyboard': { symbol: '⌨️', category: 'electronics' },
+                    'cell phone': { symbol: '📱', category: 'electronics' },
+                    'microwave': { symbol: '🫕', category: 'appliance' },
+                    'oven': { symbol: '🔥', category: 'appliance' },
+                    'toaster': { symbol: '🍞', category: 'appliance' },
+                    'sink': { symbol: '🚿', category: 'appliance' },
+                    'refrigerator': { symbol: '🧊', category: 'appliance' },
+                    'book': { symbol: '📚', category: 'object' },
+                    'clock': { symbol: '🕐', category: 'object' },
+                    'vase': { symbol: '🏺', category: 'object' },
+                    'scissors': { symbol: '✂️', category: 'object' },
+                    'teddy bear': { symbol: '🧸', category: 'toy' },
+                    'hair drier': { symbol: '💨', category: 'object' },
+                    'toothbrush': { symbol: '🪥', category: 'object' },
+                    'bottle': { symbol: '🍼', category: 'food' },
+                    'wine glass': { symbol: '🍷', category: 'food' },
+                    'cup': { symbol: '☕', category: 'food' },
+                    'fork': { symbol: '🍴', category: 'food' },
+                    'knife': { symbol: '🔪', category: 'food' },
+                    'spoon': { symbol: '🥄', category: 'food' },
+                    'bowl': { symbol: '🍜', category: 'food' },
+                    'banana': { symbol: '🍌', category: 'food' },
+                    'apple': { symbol: '🍎', category: 'food' },
+                    'sandwich': { symbol: '🥪', category: 'food' },
+                    'orange': { symbol: '🍊', category: 'food' },
+                    'broccoli': { symbol: '🥦', category: 'food' },
+                    'carrot': { symbol: '🥕', category: 'food' },
+                    'hot dog': { symbol: '🌭', category: 'food' },
+                    'pizza': { symbol: '🍕', category: 'food' },
+                    'donut': { symbol: '🍩', category: 'food' },
+                    'cake': { symbol: '🎂', category: 'food' },
+                    'sports ball': { symbol: '⚽', category: 'toy' },
+                    'kite': { symbol: '🪁', category: 'toy' },
+                    'baseball bat': { symbol: '🏏', category: 'sports' },
+                    'skateboard': { symbol: '🛹', category: 'sports' },
+                    'surfboard': { symbol: '🏄', category: 'sports' },
+                    'tennis racket': { symbol: '🎾', category: 'sports' },
+                    'unknown': { symbol: '❓', category: 'unknown' }
+                };
+                
+                // Simple phrase templates
+                this.phraseTemplates = {
+                    universal: {
+                        request: ['I want the {object}', 'Can I have the {object}?'],
+                        comment: ['I see a {object}', 'Look at the {object}']
+                    },
+                    food: {
+                        request: ['I want to eat {object}', 'Can I have some {object}?'],
+                        comment: ['{object} is yummy', 'I like {object}']
+                    },
+                    toy: {
+                        play: ['Let\'s play with the {object}', 'Can I have the {object}?']
+                    }
+                };
+            }
+            
+            processDetections(detections) {
+                return detections.map(detection => {
+                    const symbolData = this.symbolMap[detection.class] || this.symbolMap['unknown'];
+                    const phrases = this.generatePhrases(detection.class, symbolData.category);
+                    
+                    return {
+                        object: detection.class,
+                        symbol: symbolData.symbol,
+                        category: symbolData.category,
+                        phrases: phrases,
+                        confidence: detection.score
+                    };
+                });
+            }
+            
+            generatePhrases(objectClass, category) {
+                const phrases = [];
+                const categoryTemplates = this.phraseTemplates[category] || {};
+                const universalTemplates = this.phraseTemplates.universal;
+                const allTemplates = { ...universalTemplates, ...categoryTemplates };
+                
+                // Get first template from each intent
+                Object.entries(allTemplates).forEach(([intent, templates]) => {
+                    if (templates.length > 0) {
+                        const phrase = templates[0].replace('{object}', objectClass);
+                        phrases.push({ text: phrase, intent: intent });
+                    }
+                });
+                
+                return phrases;
+            }
+        }
+        
+        // UI Controllers
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const detectionsList = document.getElementById('detectionsList');
+        const aacGrid = document.getElementById('aacGrid');
+        const phraseOutput = document.getElementById('phraseOutput');
+        
+        let visionSystem = null;
+        let aacEngine = null;
+        
+        function updateStatus(message) {
+            status.textContent = message;
+        }
+        
+        function displayDetections(detections) {
+            if (detections.length === 0) {
+                detectionsList.innerHTML = '<em>No objects detected...</em>';
+                return;
+            }
+            
+            detectionsList.innerHTML = detections.map(d => 
+                `<span class="detection-item">${d.class} (${Math.round(d.score * 100)}%)</span>`
+            ).join('');
+        }
+        
+        function displayAAC(vocabulary) {
+            if (vocabulary.length === 0) {
+                aacGrid.innerHTML = '<div class="empty-state">No vocabulary generated yet...</div>';
+                return;
+            }
+            
+            aacGrid.innerHTML = vocabulary.map(item => {
+                const topPhrase = item.phrases[0] || { text: item.object };
+                return `
+                    <button class="aac-button" data-phrase="${topPhrase.text}">
+                        <span class="symbol">${item.symbol}</span>
+                        <div class="label">${item.object}</div>
+                        <div class="phrase">"${topPhrase.text}"</div>
+                    </button>
+                `;
+            }).join('');
+            
+            // Add click handlers
+            aacGrid.querySelectorAll('.aac-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const phrase = button.dataset.phrase;
+                    speak(phrase);
+                    displayPhrase(phrase);
+                });
+            });
+        }
+        
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = 0.9;
+            utterance.pitch = 1.1;
+            speechSynthesis.speak(utterance);
+        }
+        
+        function displayPhrase(phrase) {
+            phraseOutput.textContent = `"${phrase}"`;
+            phraseOutput.style.background = '#d4edda';
+            setTimeout(() => {
+                phraseOutput.style.background = '#f0f0f0';
+            }, 2000);
+        }
+        
+        // Start system
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true;
+            updateStatus('Initializing systems...');
+            
+            // Initialize AAC Engine
+            aacEngine = new AACEngine({ debugMode: true });
+            
+            // Initialize Vision System
+            visionSystem = new VisionSystem({
+                onReady: () => {
+                    updateStatus('System running! Point camera at objects...');
+                    visionSystem.startProcessing(video);
+                    stopBtn.disabled = false;
+                },
+                onDetection: (detections) => {
+                    // Update vision display
+                    displayDetections(detections);
+                    
+                    // Process through AAC engine
+                    const vocabulary = aacEngine.processDetections(detections);
+                    
+                    // Update AAC display
+                    displayAAC(vocabulary);
+                },
+                onError: ({ context, error }) => {
+                    updateStatus(`Error: ${error.message}`);
+                    startBtn.disabled = false;
+                }
+            });
+            
+            await visionSystem.initialize();
+        });
+        
+        // Stop system
+        stopBtn.addEventListener('click', () => {
+            if (visionSystem) {
+                visionSystem.stop();
+                visionSystem = null;
+            }
+            
+            video.srcObject = null;
+            updateStatus('System stopped');
+            displayDetections([]);
+            displayAAC([]);
+            phraseOutput.textContent = 'Speech output will appear here...';
+            
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
