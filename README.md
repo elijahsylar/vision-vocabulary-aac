@@ -1,5 +1,7 @@
 # VisionVocabularyAAC
 
+[![CI](https://github.com/elijahsylar/vision-vocabulary-aac/actions/workflows/ci.yml/badge.svg)](https://github.com/elijahsylar/vision-vocabulary-aac/actions/workflows/ci.yml)
+
 A browser prototype of an AAC (augmentative and alternative communication) board that builds part of its vocabulary from what the camera sees. Point a tablet at a cup and a "cup" button appears next to a fixed set of core words; tap buttons to build a sentence and have it spoken. The idea it explores: static AAC boards need someone to anticipate and pre-program every word, so vocabulary for a new place or object is often missing exactly when it is needed.
 
 ![Demo with Chrome's synthetic test camera: core words, sentence bar, and the empty detection panel (the test pattern contains no objects)](docs/screenshots/demo.png)
