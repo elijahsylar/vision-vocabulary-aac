@@ -35,7 +35,7 @@
         }
         
         button {
-            background: #007AFF;
+            background: #0062CC;
             color: white;
             border: none;
             padding: 12px 30px;
@@ -114,7 +114,7 @@
         
         .sentence-bar {
             background: #f8f9fa;
-            border: 2px solid #007AFF;
+            border: 2px solid #0062CC;
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
@@ -127,7 +127,7 @@
         }
         
         .sentence-word {
-            background: #007AFF;
+            background: #0062CC;
             color: white;
             padding: 5px 15px;
             border-radius: 20px;
@@ -142,7 +142,8 @@
         
         .word-button {
             background: white;
-            border: 3px solid #007AFF;
+            color: #333;
+            border: 3px solid #0062CC;
             border-radius: 15px;
             padding: 15px 10px;
             text-align: center;
@@ -158,7 +159,7 @@
         
         .word-button:active {
             transform: scale(0.95);
-            background: #007AFF;
+            background: #0062CC;
             color: white;
         }
         
@@ -181,7 +182,7 @@
             background: #e8f4fd;
             padding: 2px 6px;
             border-radius: 10px;
-            color: #007AFF;
+            color: #0062CC;
         }
         
         .action-buttons {
@@ -192,13 +193,13 @@
         }
         
         .action-button {
-            background: #34C759;
+            background: #1E7E34;
             padding: 10px 20px;
             font-size: 14px;
         }
         
         .action-button.clear {
-            background: #FF3B30;
+            background: #C62828;
         }
         
         .status {
@@ -212,7 +213,7 @@
         
         .empty-state {
             text-align: center;
-            color: #999;
+            color: #707070;
             padding: 40px;
             font-style: italic;
         }
@@ -224,7 +225,7 @@
             padding-top: 20px;
         }
         
-        .common-words h3 {
+        .common-words h2 {
             font-size: 14px;
             color: #666;
             margin-bottom: 10px;
@@ -239,7 +240,7 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" role="main">
         <h1>👁️ VisionVocabularyAAC - Simple Words</h1>
         
         <div class="controls">
@@ -275,7 +276,7 @@
             <div class="vocabulary-panel">
                 <!-- Sentence builder -->
                 <div class="sentence-bar" id="sentenceBar">
-                    <span style="color: #999;">Click words to build sentence...</span>
+                    <span style="color: #707070;">Click words to build sentence...</span>
                 </div>
                 
                 <!-- Action buttons -->
@@ -285,7 +286,7 @@
                 </div>
                 
                 <!-- Dynamic vocabulary -->
-                <h3 style="margin: 20px 0 10px; color: #666;">Detected Objects:</h3>
+                <h2 style="margin: 20px 0 10px; color: #666; font-size: 1.17em;">Detected Objects:</h2>
                 <div class="word-grid" id="wordGrid">
                     <div class="empty-state">
                         Point camera at objects to see them here...
@@ -294,7 +295,7 @@
                 
                 <!-- Common words -->
                 <div class="common-words">
-                    <h3>Common Words:</h3>
+                    <h2>Common Words:</h2>
                     <div class="word-grid" id="commonWords">
                         <!-- Will be populated with common words -->
                     </div>
@@ -653,7 +654,7 @@
         // Update sentence display
         function updateSentenceDisplay() {
             if (sentence.length === 0) {
-                sentenceBar.innerHTML = '<span style="color: #999;">Click words to build sentence...</span>';
+                sentenceBar.innerHTML = '<span style="color: #707070;">Click words to build sentence...</span>';
             } else {
                 sentenceBar.innerHTML = sentence.map(word => 
                     `<span class="sentence-word">${word}</span>`
