@@ -225,19 +225,19 @@ class ImprovedVisionSystem {
       return []; // Not enough history yet
     }
     
-    // Count occurrences of each object class
+    // Count the frames each object class appears in (once per frame, so
+    // two cups in one frame are still one frame)
     const classCount = new Map();
     
     for (const frameDetections of this.detectionHistory) {
-      for (const detection of frameDetections) {
-        const count = classCount.get(detection.class) || 0;
-        classCount.set(detection.class, count + 1);
+      for (const className of new Set(frameDetections.map(d => d.class))) {
+        classCount.set(className, (classCount.get(className) || 0) + 1);
       }
     }
     
-    // Get objects that appear in most frames
+    // Get objects that appear in at least 60% of frames (2 of 3, not 1)
     const stableClasses = [];
-    const requiredFrames = Math.floor(this.config.stabilityFrames * 0.6); // 60% of frames
+    const requiredFrames = Math.ceil(this.config.stabilityFrames * 0.6);
     
     for (const [className, count] of classCount) {
       if (count >= requiredFrames) {

@@ -11,7 +11,7 @@ class LayoutManager {
       gridRows: config.gridRows || 4,
       coreWordsZone: config.coreWordsZone || { rows: 2, position: 'top' },
       preserveMotorMemory: config.preserveMotorMemory !== false,
-      animateChanges: config.animateChanges || true,
+      animateChanges: config.animateChanges !== false,
       debugMode: config.debugMode || false
     };
     
