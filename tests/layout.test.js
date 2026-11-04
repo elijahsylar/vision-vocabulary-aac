@@ -53,3 +53,19 @@ test('metrics count filled cells', () => {
   assert.equal(m.filled, 2);
   assert.equal(m.filled + m.empty, m.totalPositions);
 });
+
+test('updateConfig to a smaller grid rebuilds the zones', () => {
+  const l = new LayoutManager();
+  l.updateConfig({ gridRows: 2 });
+  for (const z of Object.values(l.zones)) assert.ok(z.endRow < 2, JSON.stringify(l.zones));
+  const r = l.layoutVocabulary(detect('cup'));
+  assert.ok(r.positions.has('cup'), 'the detected word still gets a cell');
+});
+
+test('importData from a larger grid lays out without errors', () => {
+  const saved = JSON.parse(JSON.stringify(new LayoutManager({ gridRows: 6 }).exportData()));
+  const l = new LayoutManager();
+  l.importData(saved);
+  assert.equal(l.gridState.length, 6);
+  assert.doesNotThrow(() => l.layoutVocabulary(detect('cup')));
+});

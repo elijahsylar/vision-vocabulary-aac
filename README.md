@@ -51,7 +51,7 @@ Open the URL Vite prints and go to `/test-simple-words.html`, then press **Start
 npm test
 ```
 
-15 tests cover detection-to-button mapping, core-word ordering and the on/off option, symbol lookup and custom words, phrase generation, and the layout: every zone fits in the grid, core words stay in the top rows, no cell is used twice, core words keep their cells when the detected objects change, the fill metrics, and which detections count as stable across frames.
+17 tests cover detection-to-button mapping, core-word ordering and the on/off option, symbol lookup and custom words, phrase generation, and the layout: every zone fits in the grid, core words stay in the top rows, no cell is used twice, core words keep their cells when the detected objects change, the zones follow a grid-size change or an import, the fill metrics, and which detections count as stable across frames.
 
 Writing them found three layout bugs that are fixed here: the "new objects" zone pointed past the bottom of the default 4-row grid (so detected objects were never placed), core words were not flagged as core, and moves were never recorded because the old position was overwritten before it was read. A config option (`includeCommonWords: false`) also could never take effect.
 

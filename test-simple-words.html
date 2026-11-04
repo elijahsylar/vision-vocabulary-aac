@@ -506,14 +506,18 @@
                     return [];
                 }
                 
-                // Count occurrences
+                // Count the frames each class appears in (once per frame,
+                // so two cups in one frame are still one frame)
                 const classCount = new Map();
                 const classScores = new Map();
                 
                 for (const frameDetections of this.detectionHistory) {
+                    const seen = new Set();
                     for (const detection of frameDetections) {
-                        const count = classCount.get(detection.class) || 0;
-                        classCount.set(detection.class, count + 1);
+                        if (!seen.has(detection.class)) {
+                            seen.add(detection.class);
+                            classCount.set(detection.class, (classCount.get(detection.class) || 0) + 1);
+                        }
                         
                         const currentScore = classScores.get(detection.class) || 0;
                         if (detection.score > currentScore) {

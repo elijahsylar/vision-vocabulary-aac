@@ -21,15 +21,22 @@ class LayoutManager {
     this.usageStats = new Map(); // Track frequency of use
     this.lastLayoutTime = Date.now();
     
-    // Zones for different types of words, derived from the grid size so every
-    // zone has rows to place into: core rows on top, then one row of frequent
-    // words, and the remaining rows shared by contextual and newly seen words.
+    this.zones = this.computeZones();
+  }
+
+  /**
+   * Zones for different types of words, derived from the grid size so every
+   * zone has rows to place into: core rows on top, then one row of frequent
+   * words, and the remaining rows shared by contextual and newly seen words.
+   * Recomputed whenever the grid size changes.
+   */
+  computeZones() {
     const rows = this.config.gridRows;
     const coreRows = Math.max(1, Math.min(this.config.coreWordsZone.rows, rows - 1));
     const lastRow = rows - 1;
     const afterCore = Math.min(coreRows, lastRow);
     const lower = Math.min(afterCore + 1, lastRow);
-    this.zones = {
+    return {
       core: { startRow: 0, endRow: coreRows - 1, priority: 10 }, // High-frequency core words
       frequent: { startRow: afterCore, endRow: afterCore, priority: 8 }, // User's frequent words
       contextual: { startRow: lower, endRow: lastRow, priority: 6 }, // Context-specific
@@ -403,9 +410,10 @@ class LayoutManager {
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
     
-    // Reinitialize grid if size changed
-    if (newConfig.gridColumns || newConfig.gridRows) {
+    // Rebuild the grid and the zones if the size or the core zone changed
+    if (newConfig.gridColumns || newConfig.gridRows || newConfig.coreWordsZone) {
       this.gridState = this.initializeGrid();
+      this.zones = this.computeZones();
     }
   }
   
@@ -434,7 +442,12 @@ class LayoutManager {
    * Import saved layout data
    */
   importData(data) {
-    if (data.config) this.config = { ...this.config, ...data.config };
+    if (data.config) {
+      this.config = { ...this.config, ...data.config };
+      // The saved grid may have another size: rebuild to match the config
+      this.gridState = this.initializeGrid();
+      this.zones = this.computeZones();
+    }
     if (data.positionHistory) this.positionHistory = new Map(data.positionHistory);
     if (data.usageStats) this.usageStats = new Map(data.usageStats);
     if (data.lastLayoutTime) this.lastLayoutTime = data.lastLayoutTime;
