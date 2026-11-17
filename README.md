@@ -59,6 +59,10 @@ Writing them found three layout bugs that are fixed here: the "new objects" zone
 
 Prototype, paused. Not a clinical tool and not tested with AAC users. Possible next steps are listed in `docs/ARCHITECTURE.md`: context-aware vocabulary, switch scanning, and integration with a professional symbol set.
 
+## Project history
+
+The private original has commits from 27 July 2025 to 4 November 2026. The prototype was written in July 2025; the November 2026 commits are fixes. This public repository is a scrubbed snapshot of that private original, published in November 2026, which is why its commit history is short. Developed with Claude Code under a gated workflow of written plan, implementation, separate review and my sign-off.
+
 ## License
 
 MIT. See [LICENSE](LICENSE). TensorFlow.js and the COCO-SSD model are Apache 2.0 and are loaded from their published packages, not redistributed here. Symbols are Unicode emoji rendered by the user's system font.
